@@ -1,0 +1,153 @@
++===============================+
+||Making a plugin in Canvas-LMS||
++===============================+
++-------+
+|1st Way|
++-------+
+In ~/canvas/vendor/plugins/ create a folder 'second_example_plugin'
+Inside, create the following files:
+init.rb
+lib/colored_div_tag.rb
+lib/colored_div_tag_register.rb
+app/views/plugin/_colored_div_tag_settings.html.erb
+
+In init.rb:
+-----------------
+ActionView::Base.send :include, ColoredDivTag #Makes the plug avaliable to all ActionViews (.erb files)
+
+#Happens when the plugin is loaded, lists the requirements for the plugin, could also do more...
+Rails.configuration.to_prepare do
+  require_dependency 'colored_div_tag_register.rb' 	#Registers the plug to display it in the list of plugins.
+	require_dependency 'colored_div_tag.rb'		#The plugin it self.
+end
+
+In the lib/colored_div_tag.rb:
+------------------------------
+#The plugin class.
+module ColoredDivTag
+	#Method that will be called on, 'void' parameter couldn't figure out a way to have no parameters.
+  def color_tag (void)
+		#Gets the plugin settings for this plugin, from the settings page.
+		!!(PluginSetting.settings_for_plugin(:colored_div_tag))
+		settings = PluginSetting.settings_for_plugin(:colored_div_tag);
+
+		if (settings == nil)
+			return
+		end
+
+		#The indexes are from the _colored_div_tag_settings.html.erb, the names of the text_field's.
+		color = settings['colorToRender']
+		string = settings['stringToShow']
+
+		#returns a tag that will display the string from the settings page.
+		return "<div style=\"color:#{color};border-style:solid;border-width:1px;\">#{string} </div>"
+  end
+
+end
+
+
+In lib/colored_div_tag_register.rb:
+-----------------------------------
+plugin = Canvas::Plugin.register('colored_div_tag', 'tag_modification', {
+  :name => lambda{ t :name, "Colored Div Tag" },
+  :description => lambda{ t :description, "Displays a colored string on top of the assignments list when managing assignments." },
+  :website => 'http://companySite.com',
+  :author => 'Your name here',
+  :author_website => 'http://yourSite.com',
+  :version => '1.3.3.7',
+  :settings_partial => 'plugin/colored_div_tag_settings',
+})
+
+In app/views/plugin/_colored_div_tag_settings.html.erb:
+-------------------------------------------------------
+<% fields_for :settings, OpenObject.new(settings) do |f| %>
+  <table style="width: 500px;" class="formtable">
+    <tr>
+      <td colspan="2">
+        <%= mt :description, "Displays a colored string on top of the assignments list when managing assignments." %>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <%= mt :description, "The string that will be displayed:" %>
+        <%= f.text_field :stringToShow %><br>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <%= mt :description, "The color that the string will be displayed in (#00ff00):" %>
+        <%= f.text_field :colorToRender %><br>
+      </td>
+    </tr>
+  </table>
+<% end %>
+
+Now you can place
+<%=raw color_tag("1") %>
+in any .erb and a div tag will appear with the string from the settings.
+
++-------+
+|2nd Way|
++-------+
+This plugin will be seen in "localhost:3000/plugins" list, and you can configure it.
+It will need a model that it will run off, already made by the system.
+This way it seems to modify the whole source-code of Canvas-LMS, probably the wrong way :( .
+
+Open ~/canvas/lib/canvas/plugings/default_plugins.rb register a new plugin, for instance:
+------------------------------------------------------------------------------------------
+Canvas::Plugin.register('example_plugin', :web_conferencing, {
+  :name => lambda{ t :name, "Example plugin" },
+  :description => lambda{ t :description, "An example plugin" },
+  :website => 'http://bigbluebutton.org',
+  :author => 'You',
+  :author_website => 'http://bigbluebutton.org',
+  :version => '0.0.1',
+  :settings_partial => 'plugins/example_settings',
+  :validator => 'ExamplePluginValidator',
+  :encrypted_settings => [:secret]
+})
+
+In /canvas/app/views/plugins/  create _example_settings.html.erb, with the following in it:
+--------------------------------------------------------------------------------------------
+<% fields_for :settings, OpenObject.new(settings) do |f| %>
+  <table style="width: 500px;" class="formtable">
+    <tr>
+      <td colspan="2">
+        <%= mt :description, "This is an example of a plugin."%>
+	</br>
+        <%= mt :description, "Enter the text that will apear as the title after hitting the update button:"%>
+        <%= f.text_field :titleText %><br>
+      </td>
+    </tr>
+  </table>
+<% end %>
+
+Create ~/canvas/lib/canvas/plugings/example_plugin_validator.rb, containing (checks if the field is filled):
+--------------------------------------------------------------------------------------------------------------
+module Canvas::Plugins::Validators::ExamplePluginValidator
+  def self.validate(settings, plugin_setting)
+    if settings.map(&:last).all?(&:blank?)
+      {}
+    else
+      if settings.size != 1 || settings.map(&:last).any?(&:blank?)
+        plugin_setting.errors.add_to_base(I18n.t('canvas.plugins.errors.all_fields_required', 'All fields are required'))
+        false
+      else
+        settings.slice(:titleText)
+      end
+    end
+  end
+end
+
+In ~/canvas/app/models/assignment.rb add:
+--------------------------------------------
+validate :changeTitle, :if => :exSetEnabled?, :on => :update
+def exSetEnabled?
+	!!(PluginSetting.settings_for_plugin(:example_plugin))
+end
+def changeTitle
+	settings = PluginSetting.settings_for_plugin(:example_plugin);
+	self.title = settings['titleText']
+end
+
+This will change the title of the assignment when it is updated to the string provided in the plugin settings.

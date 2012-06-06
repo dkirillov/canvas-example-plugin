@@ -1,0 +1,32 @@
+This is a simple plugin for Canvas-LMS, provides a basic structure for a plugin.
+
+Canvas-LMS needs ruby 1.8.7 and up, but lower than 1.9, you will need rvm to get the older version of ruby.
+Also needs Java JDK Runtime to be installed.
+Recommended to do it on Ubuntu 10.04 LTS by the instructions, was done on 12.04 LTS.
+Follow: https://github.com/instructure/canvas-lms/wiki/Quick-Start
+
+Plugins will be found on 'http://localhost:3000/plugins', you have to be logged in first.
+
+The plugin ('ColoredDivTag') will be placed in:
+canvas/vendor/plugins/colored_div_tag
+
+Having inside:
+init.rb 													//This gets ran by Canvas when the plugin is picked up.
+lib/ 															//Contains the code for the plugin.
+lib/colored_div_tag.rb						//This is the actual plugin code.
+lib/colored_div_tag_register.rb		//This registers the plugin to be seen in the plugins list, to have the settings, and to be used.
+app/															//A self contained 'app' folder just like in Canvas it self, contains further subfolders like models, views, controllers..
+app/views													//Contains the template files (.erb), or folders to group templates, in this case there's plugin.
+app/views/plugin/									//Contains template files.
+app/views/plugin/_colored_div_tag_settings.html.erb		//This is the template for the way the settings are displayed.
+
+The plugin just creates a div tag given the color and string from the settings, and places it where you call it.
+To use the plugin, place '<%=raw color_tag("1") %>' in any of the canvas's .erb files. Originally done on canvas/app/view/assignments/_assignments_content.html.erb .
+All the code is commented, aside from the _colored_div_tag_settings.html.erb
+Also 'different ways.txt' shows this way (seems more right) and another way to make a plugin.
+
+'Beginning Rails 3', page 287 shows that a plugin could be installed from github
+
+Used resources:
+Pages 285-306, of 'Beginning Rails 3' show ways to install/create plugins for rails in general.
+http://nubyonrails.com/articles/the-complete-guide-to-rails-plugins-part-ii

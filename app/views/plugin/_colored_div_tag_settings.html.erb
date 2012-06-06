@@ -1,0 +1,21 @@
+<% fields_for :settings, OpenObject.new(settings) do |f| %>
+  <table style="width: 500px;" class="formtable">
+    <tr>
+      <td colspan="2">
+        <%= mt :description, "Displays a colored string on top of the assignments list when managing assignments." %>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <%= mt :description, "The string that will be displayed:" %>
+        <%= f.text_field :stringToShow %><br>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <%= mt :description, "The color that the string will be displayed in (#00ff00):" %>
+        <%= f.text_field :colorToRender %><br>
+      </td>
+    </tr>
+  </table>
+<% end %>
